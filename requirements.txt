@@ -37,7 +37,7 @@ beautifulsoup4==4.12.2
 lxml==5.1.0                        # Fast XML/HTML parser
 html5lib==1.1                      # lenient HTML parser
 scrapy==2.11.0                     # Advanced scraping framework (optional)
-selenium==4.16.2                   # Browser automation (for JS sites)
+selenium==4.18.1                   # Browser automation (for JS sites)
 webdriver-manager==4.0.1           # Chrome driver management
 
 # -----------------------------------------------------------------------------
