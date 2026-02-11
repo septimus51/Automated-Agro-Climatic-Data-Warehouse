@@ -1,49 +1,4 @@
 # Automated-Agro-Climatic-Data-Warehouse
-# 🌾 Agro-Climatic Data Warehouse
-
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-✓-2496ED)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-&gt; **Pipeline ETL automatisé** combinant données de sol, météo et besoins des cultures pour l'analyse agricole.
-
----
-
-## 📋 Table des Matières
-
-- [Architecture](#-architecture)
-- [Prérequis](#-prérequis)
-- [Installation Rapide](#-installation-rapide)
-- [Utilisation](#-utilisation)
-- [Structure du Projet](#-structure-du-projet)
-- [APIs et Sources de Données](#-apis-et-sources-de-données)
-- [Schéma de Base de Données](#-schéma-de-base-de-données)
-- [Développement](#-développement)
-- [Tests](#-tests)
-- [Dépannage](#-dépannage)
-- [Roadmap](#-roadmap)
-
----
-
-## 🏗️ Architecture
-
----
-
-## 📦 Prérequis
-
-| Outil | Version | Installation |
-|-------|---------|--------------|
-| Python | 3.10+ | `sudo apt install python3 python3-venv` |
-| Docker | 20.10+ | [Docker Desktop](https://docs.docker.com/get-docker/) |
-| Docker Compose | 2.0+ | Inclus avec Docker |
-| Make | 4.0+ | `sudo apt install make` |
-
----
-
-## 🚀 Installation Rapide
-
-# Agro-Climatic Data Warehouse
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
