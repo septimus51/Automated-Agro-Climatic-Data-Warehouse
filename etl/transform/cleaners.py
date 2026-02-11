@@ -108,10 +108,12 @@ class TextCleaner:
     
     def _expand_abbreviations(self, text: str) -> str:
         """Expand common agricultural abbreviations"""
-        text_lower = text.lower()
-        for abbr, full in self.ABBREVIATIONS.items():
-            # Case-insensitive replacement preserving case pattern
-            pattern = re.compile(re.escape(abbr), re.IGNORECASE)
+        # Sort by length (longest first) to avoid partial matches
+        sorted_abbrs = sorted(self.ABBREVIATIONS.items(), key=lambda x: len(x[0]), reverse=True)
+        
+        for abbr, full in sorted_abbrs:
+            # Use word boundaries to avoid matching inside words
+            pattern = re.compile(r'\b' + re.escape(abbr) + r'\b', re.IGNORECASE)
             text = pattern.sub(full, text)
         return text
     
@@ -128,6 +130,8 @@ class TextCleaner:
         text = re.sub(r'\[\d+(?:,\s*\d+)*\]', '', text)
         # Remove author-year citations
         text = re.sub(r'\([A-Z][a-z]+(?:\s+et\s+al\.?)?,\s*\d{4}[a-z]?\)', '', text)
+        # Remove "Also see..." references
+        text = re.sub(r'also see.*?(?:for more|more info|details).*', '', text, flags=re.IGNORECASE)
         return text
     
     def _remove_references(self, text: str) -> str:
@@ -427,13 +431,13 @@ class DataCleaner:
             return None
         
         # Assume mm/day if reasonable range
-        if 0.1 <= value <= 50:
+        if 1.0 <= value <= 40:
             return round(value, 2)
-        # If very small, might be cm/day
-        elif 0.01 <= value < 0.1:
+        # If small (likely cm/day), convert to mm
+        elif 0.01 <= value < 1.0:  # Changed from < 0.1 to < 1.0
             return round(value * 10, 2)  # Convert cm to mm
         # If large, might be weekly
-        elif 50 < value <= 350:
+        elif 40 < value <= 350:
             return round(value / 7, 2)  # Convert weekly to daily
         
         return None
