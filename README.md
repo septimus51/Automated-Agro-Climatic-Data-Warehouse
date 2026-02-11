@@ -108,53 +108,96 @@ make db-shell
 ## Project Structure
 
 agro-climate-warehouse/
+
 ├── Makefile                    # Main project commands
+
 ├── docker-compose.yml          # Docker services configuration
+
 ├── Dockerfile                  # ETL Python image
+
 ├── requirements.txt            # Python dependencies
+
 ├── .env.example               # Configuration template
+
 │
 ├── db/
+
 │   └── init/
+
 │       └── 01-schema.sql      # PostgreSQL schema (Star Schema)
+
 │
 ├── etl/                       # Main ETL package
+
 │   ├── __init__.py
+
 │   ├── config.py              # Centralized configuration
+
 │   ├── orchestrator.py        # Pipeline orchestrator
+
 │   │
+
 │   ├── extract/               # Extraction module
+
 │   │   ├── __init__.py
+
 │   │   ├── soil_api.py        # SoilGrids API client
+
 │   │   ├── weather_api.py     # Open-Meteo API client
+
 │   │   └── web_scraper.py     # FAO/USDA web scraper
+
 │   │
+
 │   ├── transform/             # Transformation module
+
 │   │   ├── __init__.py
+
 │   │   ├── cleaners.py        # Data/text cleaning
+
 │   │   ├── nlp_extractor.py   # NLP entity extraction
+
 │   │   └── transformers.py    # DWH schema mapping
+
 │   │
 │   ├── load/                  # Loading module
+
 │   │   ├── __init__.py
+
 │   │   └── postgres_loader.py # Idempotent PostgreSQL loader
+
 │   │
+
 │   └── utils/                 # Utilities module
+
 │       ├── __init__.py
+
 │       ├── logger.py          # Structured logging
+
 │       ├── database.py        # PostgreSQL connection manager
+
 │       └── validators.py      # Geo/data validators
+
 │
 ├── tests/                     # Test suite
+
 │   ├── __init__.py
+
 │   ├── conftest.py            # Pytest fixtures
+
 │   ├── test_extractors.py     # Extraction tests
+
 │   └── test_transformers.py   # Transformation tests
+
 │
 ├── data/                      # Data directory (gitignored)
+
 │   ├── raw/                   # Downloaded raw data
+
 │   └── processed/             # Transformed data
+
 │
+
 └── logs/                      # Application logs
 
 ## Data Source

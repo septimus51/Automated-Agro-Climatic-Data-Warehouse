@@ -66,27 +66,28 @@ class CropRequirementScraper:
         })
         self.visited_urls = set()
     
-    def _respectful_request(self, url: str) -> Optional[str]:
-        """Make request with politeness delays"""
-        if url in self.visited_urls:
-            return None
-        
-        time.sleep(self.config.scraping.request_delay)
-        
+    def _respectful_request(self, url: str) -> Optional[requests.Response]:
+        """Make a respectful request with retries"""
         for attempt in range(self.config.scraping.max_retries):
             try:
                 response = self.session.get(
                     url, 
-                    timeout=self.config.scraping.timeout,
-                    allow_redirects=True
+                    timeout=self.config.scraping.timeout,  # Changed from self.config.timeout
+                    headers={'User-Agent': self.config.scraping.user_agent}  # Changed from self.config.user_agent
                 )
+                
+                # Specifically handle 404 errors
+                if response.status_code == 404:
+                    self.logger.logger.warning(f"URL not found (404), skipping: {url}")
+                    return None
+                
                 response.raise_for_status()
-                self.visited_urls.add(url)
-                return response.text
-            except requests.exceptions.RequestException as e:
-                self.logger.log_error(e, f"Scraping attempt {attempt + 1} for {url}")
-                if attempt < self.config.scraping.max_retries - 1:
-                    time.sleep(2 ** attempt)
+                return response
+                
+            except requests.exceptions.HTTPError as e:
+                if attempt == self.config.scraping.max_retries - 1:  # Changed from self.config.max_retries
+                    raise
+                time.sleep(self.config.scraping.request_delay * (attempt + 1))  # Changed from self.config.request_delay
         
         return None
     
@@ -103,7 +104,7 @@ class CropRequirementScraper:
         if not html:
             return None
         
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html.text, 'html.parser')
         
         # FAO documents typically have content in div with class 'content' or article tags
         content_div = soup.find('div', class_='content') or soup.find('article')

@@ -175,8 +175,7 @@ class WarehouseLoader:
             self.logger.log_error(e, "Loading crop requirements")
             return 0
     
-    def audit_completion(self, status: str, records_processed: int, 
-                        error_msg: Optional[str] = None):
+    def audit_completion(self, status: str, records_processed: int, error_msg: Optional[str] = None):
         """Write audit log entry"""
         query = """
             UPDATE etl_audit_log 
@@ -186,4 +185,6 @@ class WarehouseLoader:
                 error_message = %s
             WHERE batch_id = %s;
         """
-        self.db.execute_batch(query, [(status, records_processed, error_msg, self.batch_id)])
+        # Utiliser execute simple pour un seul UPDATE
+        with self.db.cursor() as cur:
+            cur.execute(query, (status, records_processed, error_msg, self.batch_id))

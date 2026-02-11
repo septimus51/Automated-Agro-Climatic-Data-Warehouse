@@ -171,7 +171,9 @@ class ETLPipeline:
             INSERT INTO etl_audit_log (batch_id, pipeline_name, start_time, status)
             VALUES (%s, %s, CURRENT_TIMESTAMP, 'RUNNING');
         """
-        self.db.execute_batch(query, [(batch_id, pipeline_name)])
+        # Utiliser execute simple pour un seul enregistrement
+        with self.db.cursor() as cur:
+            cur.execute(query, (batch_id, pipeline_name))
     
     def run_full_pipeline(self, 
                          coordinates: List[Tuple[float, float]],

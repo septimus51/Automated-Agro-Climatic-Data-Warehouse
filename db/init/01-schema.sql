@@ -46,6 +46,7 @@ CREATE TABLE dim_soil (
     extraction_date DATE NOT NULL,
     metadata JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CONSTRAINT unique_soil_location_date UNIQUE (location_key, extraction_date)
 );
 
 CREATE INDEX idx_soil_location ON dim_soil(location_key);
@@ -78,7 +79,9 @@ CREATE TABLE dim_crop (
 
 CREATE INDEX idx_crop_name ON dim_crop(crop_name);
 CREATE INDEX idx_crop_temp ON dim_crop(optimal_temp_min_c, optimal_temp_max_c);
-
+-- Unique constraint for ON CONFLICT support
+ALTER TABLE dim_crop 
+ADD CONSTRAINT unique_crop_name UNIQUE (crop_name);
 -- Dim Date: Standard date dimension
 CREATE TABLE dim_date (
     date_key INT PRIMARY KEY, -- YYYYMMDD format
@@ -153,13 +156,29 @@ CREATE TABLE fact_weather (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (date_key, location_key)
 ) PARTITION BY RANGE (date_key);
+-- Function to create partitions automatically
+CREATE OR REPLACE FUNCTION create_weather_partitions(year INT)
+RETURNS void AS $$
+DECLARE
+    start_date DATE;
+    end_date DATE;
+    partition_name TEXT;
+BEGIN
+    FOR i IN 1..12 LOOP
+        start_date := make_date(year, i, 1);
+        end_date := start_date + INTERVAL '1 month';
+        partition_name := 'fact_weather_' || year || '_' || LPAD(i::TEXT, 2, '0');
+        
+        EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF fact_weather FOR VALUES FROM (%L) TO (%L)', 
+                      partition_name, start_date, end_date);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
--- Create monthly partitions
-CREATE TABLE fact_weather_2024_01 PARTITION OF fact_weather
-    FOR VALUES FROM (20240101) TO (20240201);
-CREATE TABLE fact_weather_2024_02 PARTITION OF fact_weather
-    FOR VALUES FROM (20240201) TO (20240301);
--- ... Additional partitions via automation
+-- Create partitions for current year and next 2 years
+SELECT create_weather_partitions(2024);
+SELECT create_weather_partitions(2025);
+SELECT create_weather_partitions(2026);
 
 CREATE INDEX idx_weather_location_date ON fact_weather(location_key, date_key);
 CREATE INDEX idx_weather_temp ON fact_weather(temp_mean_c);
