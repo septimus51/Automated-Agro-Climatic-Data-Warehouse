@@ -1,0 +1,361 @@
+# data-quality.yml
+# Data Quality Configuration for Agro-Climatic Data Warehouse
+
+version: "1.0"
+description: "Data quality rules and validations for agricultural and climate data"
+
+# Global Settings
+settings:
+  fail_on_critical: true
+  warn_on_minor: true
+  log_all_violations: true
+  max_error_rate_percent: 5.0
+  notification_email: "data-team@example.com"
+
+# Data Source Quality Rules
+sources:
+  soilgrids_api:
+    name: "SoilGrids API"
+    reliability_score: 0.95
+    expected_response_time_ms: 5000
+    max_daily_requests: 1000
+    required_fields:
+      - latitude
+      - longitude
+      - clay_0_5cm
+      - sand_0_5cm
+      - silt_0_5cm
+      - ph_0_5cm
+    
+  open_meteo_api:
+    name: "Open-Meteo API"
+    reliability_score: 0.98
+    expected_response_time_ms: 3000
+    max_daily_requests: 10000
+    required_fields:
+      - date
+      - temperature_2m_max
+      - temperature_2m_min
+      - precipitation_sum
+
+  fao_web:
+    name: "FAO Crop Profiles"
+    reliability_score: 0.85
+    expected_response_time_ms: 8000
+    fallback_sources:
+      - usda_plants
+      - extension_sites
+
+# Table-Level Quality Rules
+tables:
+  dim_location:
+    description: "Geographic locations dimension"
+    primary_key: location_key
+    unique_columns:
+      - location_hash
+    not_null_columns:
+      - latitude
+      - longitude
+      - location_hash
+    validations:
+      latitude:
+        type: range
+        min: -90.0
+        max: 90.0
+        description: "Valid latitude range"
+      longitude:
+        type: range
+        min: -180.0
+        max: 180.0
+        description: "Valid longitude range"
+      country_code:
+        type: regex
+        pattern: "^[A-Z]{2}$"
+        description: "ISO 3166-1 alpha-2 country code"
+    
+  dim_soil:
+    description: "Soil properties dimension"
+    primary_key: soil_key
+    unique_columns:
+      - location_key
+      - extraction_date
+    not_null_columns:
+      - location_key
+      - extraction_date
+    validations:
+      clay_content_0_5cm:
+        type: range
+        min: 0.0
+        max: 100.0
+        description: "Clay content percentage"
+      sand_content_0_5cm:
+        type: range
+        min: 0.0
+        max: 100.0
+        description: "Sand content percentage"
+      silt_content_0_5cm:
+        type: range
+        min: 0.0
+        max: 100.0
+        description: "Silt content percentage"
+      ph_level_0_5cm:
+        type: range
+        min: 0.0
+        max: 14.0
+        description: "pH level"
+      soil_texture:
+        type: enum
+        values: ["Sand", "Sandy Loam", "Loam", "Silt Loam", "Silt", "Clay Loam", "Silty Clay Loam", "Sandy Clay Loam", "Sandy Clay", "Silty Clay", "Clay"]
+        description: "USDA soil texture classification"
+    
+  dim_crop:
+    description: "Crop characteristics dimension"
+    primary_key: crop_key
+    unique_columns:
+      - crop_name
+    not_null_columns:
+      - crop_name
+    validations:
+      temp_min_c:
+        type: range
+        min: -10.0
+        max: 40.0
+        description: "Minimum temperature tolerance"
+      temp_max_c:
+        type: range
+        min: 10.0
+        max: 60.0
+        description: "Maximum temperature tolerance"
+      water_mm_day:
+        type: range
+        min: 0.1
+        max: 50.0
+        description: "Daily water requirement in mm"
+      ph_min:
+        type: range
+        min: 0.0
+        max: 14.0
+        description: "Minimum pH tolerance"
+      ph_max:
+        type: range
+        min: 0.0
+        max: 14.0
+        description: "Maximum pH tolerance"
+      sunlight_hours:
+        type: range
+        min: 0.0
+        max: 24.0
+        description: "Daily sunlight requirement"
+    
+  dim_date:
+    description: "Date dimension"
+    primary_key: date_key
+    unique_columns:
+      - full_date
+    not_null_columns:
+      - date_key
+      - full_date
+      - year
+      - month
+      - day
+    
+  fact_weather:
+    description: "Daily weather measurements fact table"
+    primary_key: [location_key, date_key]
+    partition_key: date_key
+    not_null_columns:
+      - location_key
+      - date_key
+      - temp_max_c
+      - temp_min_c
+    validations:
+      temp_max_c:
+        type: range
+        min: -50.0
+        max: 60.0
+        description: "Maximum daily temperature"
+        critical: true
+      temp_min_c:
+        type: range
+        min: -50.0
+        max: 60.0
+        description: "Minimum daily temperature"
+        critical: true
+      precipitation_mm:
+        type: range
+        min: 0.0
+        max: 2000.0
+        description: "Daily precipitation"
+      humidity_percent:
+        type: range
+        min: 0.0
+        max: 100.0
+        description: "Relative humidity"
+      wind_speed_ms:
+        type: range
+        min: 0.0
+        max: 200.0
+        description: "Wind speed"
+    cross_validations:
+      - name: "temp_max_gte_temp_min"
+        expression: "temp_max_c >= temp_min_c"
+        description: "Maximum temperature must be >= minimum temperature"
+        critical: true
+    
+  fact_soil:
+    description: "Soil measurements fact table"
+    primary_key: [location_key, measurement_date]
+    not_null_columns:
+      - location_key
+      - measurement_date
+    
+  fact_crop_suitability:
+    description: "Crop-location compatibility analysis"
+    primary_key: [location_key, crop_key, analysis_date]
+    not_null_columns:
+      - location_key
+      - crop_key
+      - analysis_date
+    validations:
+      suitability_score:
+        type: range
+        min: 0.0
+        max: 100.0
+        description: "Suitability score percentage"
+      confidence_level:
+        type: range
+        min: 0.0
+        max: 1.0
+        description: "Confidence level (0-1)"
+
+# Data Freshness Rules
+freshness:
+  dim_soil:
+    max_age_days: 365
+    description: "Soil data should be refreshed annually"
+  
+  fact_weather:
+    max_age_hours: 24
+    description: "Weather data should be updated daily"
+  
+  dim_crop:
+    max_age_days: 180
+    description: "Crop data should be refreshed every 6 months"
+
+# Referential Integrity Rules
+referential_integrity:
+  fact_weather.location_key:
+    references: dim_location.location_key
+    on_violation: "log_error"
+  
+  fact_soil.location_key:
+    references: dim_location.location_key
+    on_violation: "log_error"
+  
+  fact_soil.soil_key:
+    references: dim_soil.soil_key
+    on_violation: "log_error"
+  
+  fact_crop_suitability.location_key:
+    references: dim_location.location_key
+    on_violation: "log_error"
+  
+  fact_crop_suitability.crop_key:
+    references: dim_crop.crop_key
+    on_violation: "log_error"
+
+# Anomaly Detection Rules
+anomalies:
+  temperature_spike:
+    description: "Detect sudden temperature changes"
+    table: fact_weather
+    condition: "ABS(temp_max_c - LAG(temp_max_c) OVER (PARTITION BY location_key ORDER BY date_key)) > 15"
+    severity: warning
+  
+  precipitation_outlier:
+    description: "Detect extreme precipitation events"
+    table: fact_weather
+    condition: "precipitation_mm > (AVG(precipitation_mm) OVER (PARTITION BY location_key, EXTRACT(MONTH FROM date_key)) * 5)"
+    severity: warning
+  
+  ph_extreme:
+    description: "Detect extreme pH values"
+    table: dim_soil
+    condition: "ph_level_0_5cm < 4.0 OR ph_level_0_5cm > 10.0"
+    severity: critical
+
+# Data Completeness Rules
+completeness:
+  global_threshold: 95.0
+  table_thresholds:
+    dim_location: 100.0
+    dim_soil: 95.0
+    dim_crop: 90.0
+    fact_weather: 99.0
+    fact_soil: 95.0
+    fact_crop_suitability: 85.0
+
+# Custom SQL Validations
+custom_validations:
+  - name: "soil_texture_composition"
+    description: "Clay + Sand + Silt should equal 100% (±5%)"
+    sql: |
+      SELECT location_key, extraction_date
+      FROM dim_soil
+      WHERE ABS((COALESCE(clay_content_0_5cm, 0) + 
+                 COALESCE(sand_content_0_5cm, 0) + 
+                 COALESCE(silt_content_0_5cm, 0)) - 100) > 5
+    severity: warning
+  
+  - name: "crop_temperature_range"
+    description: "Crop max temp should be greater than min temp"
+    sql: |
+      SELECT crop_key, crop_name
+      FROM dim_crop
+      WHERE temp_max_c <= temp_min_c
+    severity: critical
+  
+  - name: "future_weather_data"
+    description: "Weather data should not be from the future"
+    sql: |
+      SELECT location_key, date_key
+      FROM fact_weather
+      WHERE date_key > CURRENT_DATE
+    severity: critical
+
+# Monitoring and Alerting
+monitoring:
+  metrics:
+    - name: "daily_record_count"
+      tables: [fact_weather, fact_soil]
+      schedule: "0 9 * * *"  # Daily at 9 AM
+      
+    - name: "weekly_quality_score"
+      schedule: "0 9 * * 1"  # Weekly on Monday
+      
+    - name: "monthly_completeness_report"
+      schedule: "0 9 1 * *"  # Monthly on 1st
+
+  alerts:
+    critical:
+      channels: [email, slack]
+      recipients: ["data-team@example.com", "#data-alerts"]
+      
+    warning:
+      channels: [slack]
+      recipients: ["#data-quality"]
+
+# ETL Pipeline Quality Gates
+etl_gates:
+  extract:
+    min_source_availability: 0.8
+    max_error_rate: 0.1
+    
+  transform:
+    min_validation_pass_rate: 0.95
+    max_null_rate: 0.05
+    
+  load:
+    min_rows_loaded: 1
+    max_load_time_minutes: 30
+    verify_row_count: true
