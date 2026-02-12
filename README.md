@@ -271,4 +271,7 @@ make test-cov
 
 # Quick tests (skip slow ones)
 make test-quick
+
+# test the workflows
+make test-workflows
 ```
