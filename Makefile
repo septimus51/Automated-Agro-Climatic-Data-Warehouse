@@ -194,3 +194,25 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .coverage .mypy_cache 2>/dev/null || true
 	@echo "$(GREEN)Cleaning complete$(NC)"
+
+# ============================================================================
+# WORKFLOW TESTING TARGETS
+# ============================================================================
+
+.PHONY: test-workflows test-prereqs test-quality test-audit
+
+test-workflows:
+	venv/bin/python -m pytest tests/test_workflows.py -v --tb=short -x
+
+test-prereqs:
+	venv/bin/python -m pytest tests/test_workflows.py::TestPrerequisites -v
+
+test-quality:
+	venv/bin/python -m pytest tests/test_workflows.py::TestDataQualityRules -v
+
+test-audit:
+	venv/bin/python -m pytest tests/test_workflows.py::TestETLAudit -v
+
+# Quick validation without running ETL
+validate-data: test-prereqs test-quality test-audit
+	@echo " Data validation complete"
